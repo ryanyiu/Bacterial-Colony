@@ -1,0 +1,23 @@
+{
+  "name": "cellular_auto",
+  "version": "1.0.0",
+  "description": "",
+  "main": "animation.js",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.2",
+    "debug": "^3.1.0",
+    "express": "^4.16.3",
+    "http-server": "^0.11.1",
+    "morgan": "^1.9.0",
+    "path": "^0.12.7",
+    "pixi.js": "^4.7.3",
+    "require.js": "^1.0.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node ./index.js"
+  },
+  "author": "",
+  "license": "ISC"
+}
