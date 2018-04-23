@@ -3,18 +3,18 @@ const MAX_ENERGY_RESERVE_PHOTOTROPH = 160;
 const MIN_ENERGY_RESERVE = 40;
 
 const MAX_ENERGY_PRODUCTION_CHEMOTROPH = 45;
-const MAX_ENERGY_PRODUCTION_PHOTOTROPH = 70;
+const MAX_ENERGY_PRODUCTION_PHOTOTROPH = 60;
 const MIN_ENERGY_PRODUCTION = 20;
 
-const MAX_ENERGY_CELL_MITOSIS = 60;
+const MAX_ENERGY_CELL_MITOSIS = 10;
 
-const MAX_ENERGY_CELL_MOVEMENT_CHEMOTROPH = 30;
-const MAX_ENERGY_CELL_MOVEMENT_PHOTOTROPH = 55;
-const MIN_ENERGY_CELL_MOVEMENT = 20;
+const MAX_ENERGY_CELL_MOVEMENT_CHEMOTROPH = 25;
+const MAX_ENERGY_CELL_MOVEMENT_PHOTOTROPH = 45;
+const MIN_ENERGY_CELL_MOVEMENT = 10;
 
 const MAX_BASE_METABOLIC_RATE_CHEMOTROPH = 30;
-const MAX_BASE_METABOLIC_RATE_PHOTOTROPH = 40;
-const MIN_BASE_METABOLIC_RATE = 20; 
+const MAX_BASE_METABOLIC_RATE_PHOTOTROPH = 30;
+const MIN_BASE_METABOLIC_RATE = 10; 
 
 const MAX_RAND_FACTOR = 0.9;
 const MIN_RAND_FACTOR = 0.1;
@@ -22,7 +22,7 @@ const MIN_RAND_FACTOR = 0.1;
  * Bacteria class is responsible for defining the general bacteria class
  * 
  */
-// Color for the cells: #999900
+// Color for the cells: #FFAA00
 // Color for bacteria: #004400 for phototrophic
 //                     #883300 for chemotrophic 
 class Bacteria {
@@ -44,6 +44,7 @@ class Bacteria {
         this.cell.isOccupied = true;
         this.isDead = false;
         this.nextCell = null;
+        this.isChild = false;
         // --Specify shape and idle movement--
         this.rounded = Math.floor(Math.random() * 10);
         this.move = Math.random() * 0.1;
@@ -75,6 +76,12 @@ class Bacteria {
         }
         this.mitosisEnergy = this.randFactor * MAX_ENERGY_CELL_MITOSIS;
         // -----------------------------------------------------------------
+        this.color = 0x000000;
+        if (this.energyType == 0) {
+            this.color = 0x004400;
+        } else {
+            this.color = 0x883300;
+        }
     }
 
     /**
@@ -86,7 +93,7 @@ class Bacteria {
      */
     takeAction() {
         if (this.isDead) return;
-        let state = Math.floor(Math.random() * 2);
+        let state = Math.floor(Math.random() * 3);
         switch (state) {
             case 0:
                 this.reserveEnergy += this.calculateEnergyProduction() - this.calculateEnergyConsumption(state);
@@ -94,11 +101,16 @@ class Bacteria {
             case 1:
                 if (this.canMove()) {
                     let moveDir = Math.floor(Math.random() * 4);
-                    while(this.cell.neighbors[moveDir] == null) {
+                    let check = moveDir;
+                    while(this.cell.neighbors[moveDir] == null ||
+                            this.cell.neighbors[moveDir].isOccupied) {
                         moveDir = (moveDir + 1) % 4;
+                        if (check == moveDir) break;
                     }
-                    if (!this.cell.neighbors[moveDir].isOccupied) {
+                    if (this.cell.neighbors[moveDir] != null &&
+                        !this.cell.neighbors[moveDir].isOccupied) {
                         this.nextCell = this.cell.neighbors[moveDir];
+                        this.nextCell.isOccupied = true;
                         this.reserveEnergy += this.calculateEnergyProduction() - this.calculateEnergyConsumption(state);
                         break;
                     } else {
@@ -111,21 +123,29 @@ class Bacteria {
                 }
             case 2:
                 if (this.canSplit()) {
-                    let cellToFill = null;
-                    for (let i = 0; i < this.cell.neighbors.length; i++) {
-                        if (this.cell.neighbors[i] != null && !this.cell.neighbors[i].isOccupied) 
-                            cellToFill = this.cells.neighbors[i];
+                    let check = Math.floor(Math.random() * 4);
+                    let checkLoop = check;
+                    while (this.cell.neighbors[check] == null ||
+                            this.cell.neighbors[check].isOccupied) {
+                        check = (check + 1) % 4;
+                        if (check == checkLoop) break;
                     }
-                    if (cellToFill != null) {
+                    let cellToFill = this.cell.neighbors[check];
+                    if (cellToFill != null && cellToFill.isOccupied == false) {
+                        cellToFill.isOccupied = true;
                         let bacterium = new Bacteria(cell_size, this.cell);
+                        bacterium.isChild = true;
                         bacterium.nextCell = cellToFill;
                         bacterium.energyType = this.energyType;
                         bacterium.randFactor = this.randFactor;
-                        if (Math.random() > 0.005) {
+                        bacterium.color = this.color;
+                        if (Math.random() <= 0.005) {
                             if (Math.random() >= 0.5) {
                                 bacterium.randFactor += Math.random() * 0.05;
+                                // bacterium.color += 0x000001;
                             } else {
                                 bacterium.randFactor -= Math.random() * 0.05;
+                                // bacterium.color -= 0x000001;
                             }
                         }
                         this.reserveEnergy += (this.calculateEnergyProduction() - this.calculateEnergyConsumption(state)) / 2;
@@ -160,7 +180,7 @@ class Bacteria {
             case 0: // phototrophic
                 this.resourcesNeeded.push(this.randFactor * 25);
                 this.resourcesNeeded.push(0);
-                this.lightEfficiency = this.randFactor;
+                this.lightEfficiency = this.randFactor * 0.5;
                 return;
             case 1: // chemotrophic
                 this.resourcesNeeded.push(this.randFactor * 35);
@@ -176,7 +196,8 @@ class Bacteria {
         this.consumeResources();
         switch(this.energyType) {
             case 0: // phototrophic
-                return this.energyProduction * (this.resourcesNeeded[1] / this.resourcesNeeded[0]) * this.lightEfficiency; 
+                let energyFactor = (this.lightEfficiency * this.randFactor) + this.randFactor;
+                return this.energyProduction * (this.resourcesNeeded[1] / this.resourcesNeeded[0]) * energyFactor; 
             case 1: // chemotrophic
                 return this.energyProduction * (this.resourcesNeeded[1] / this.resourcesNeeded[0])
         }
@@ -227,7 +248,7 @@ class Bacteria {
     // Handles the drawing of the bacterium
     drawBacterium() {
         // Handle dying animation
-        if (this.isDead && this.size > 0) this.size -= this.size / 20;
+        if (this.isDead && this.size > 1) this.size -= this.size / 10;
         else if (this.size <= 1) {
             this.size = 0;
             return;
@@ -235,22 +256,24 @@ class Bacteria {
 
         // Handle movement to a new cell
         if (this.nextCell != null) {
+            if (!this.isChild) this.cell.isOccupied = false;
+            else this.isChild = false;
             this.cell = this.nextCell;
             this.nextCell = null;
         }
         if (this.x * cell_size != this.cell.x * cell_size || this.y * cell_size != this.cell.y * cell_size) {
-            if (Math.abs(this.x * cell_size - this.cell.x * cell_size) <= 1 ||
+            if (Math.abs(this.x * cell_size - this.cell.x * cell_size) <= 1 &&
                 Math.abs(this.x * cell_size - this.cell.y * cell_size) <= 1) {
                 this.x = this.cell.x;
                 this.y = this.cell.y;
             } else {
-                this.x += (this.cell.x - this.x) / 20;
-                this.y += (this.cell.y - this.y) / 20;
+                this.x += (this.cell.x - this.x) / 10;
+                this.y += (this.cell.y - this.y) / 10;
             }
         }
 
         this.graphic.clear();
-        this.graphic.beginFill(this.color());
+        this.graphic.beginFill(this.color);
         if (this.rounded >= (Math.floor(this.size / 3 + 1) / 2)) {
             this.graphic.drawRoundedRect(this.x * cell_size + (cell_size - this.size) / 2,
                 this.y * cell_size + (cell_size - this.size) / 2, this.size, this.size, 
@@ -262,14 +285,5 @@ class Bacteria {
         }
         this.rounded = (this.rounded + this.move) % Math.floor(this.size / 3 + 1);
         this.graphic.endFill();
-    }
-
-    // Determines color for bacterium based on energy type
-    color() {
-        if (this.energyType == 0) {
-            return 0x004400;
-        } else {
-            return 0x883300
-        }
     }
 }

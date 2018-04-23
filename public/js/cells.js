@@ -1,8 +1,8 @@
-const MIN_RESOURCES = 100;
-const MAX_RESOURCES = 200;
+const MIN_RESOURCES = 60;
+const MAX_RESOURCES = 100;
 
 const MIN_REGENERATION = 10;
-const MAX_REGENERATION = 25;
+const MAX_REGENERATION = 20;
 /**
  * This class is responsible for setting up the cells along with their different
  *  properties (like food, lighting, etc.).

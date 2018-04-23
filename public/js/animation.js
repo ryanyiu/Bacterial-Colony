@@ -145,19 +145,21 @@ var Environment = {
 
     activate : function() {
         for (let i = 0; i < this.bacteria.length; i++) {
-            let check = this.bacteria[i].takeAction();
+            let bacterium = this.bacteria[i];
+            let check = bacterium.takeAction();
             if (check != null) {
                 this.bacteria.splice(0, 0, check);
                 i++;                                // Need to maintain moving to the next bacterium
             }
-            this.bacteria[i].cell.regenerateResources();
-            if (this.bacteria[i].isDead && this.bacteria[i].size == 0) {
+            bacterium.cell.regenerateResources();
+            if (bacterium.isDead && bacterium.size == 0) {
                 this.bacteria.splice(i, 1);    
-            } else {
-                let cell = this.bacteria[i].cell;
-                console.log(cell.x + ", " + cell.y);
+            } else if (!bacterium.isDead) {
+                // let cell = this.bacteria[i].cell;
+                // console.log(cell.x + ", " + cell.y);
             }
         }
+        console.log(this.bacteria.length);
     }
 }
 
