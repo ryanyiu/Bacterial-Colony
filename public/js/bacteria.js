@@ -2,8 +2,8 @@ const MAX_ENERGY_RESERVE_CHEMOTROPH = 120;
 const MAX_ENERGY_RESERVE_PHOTOTROPH = 160;
 const MIN_ENERGY_RESERVE = 40;
 
-const MAX_ENERGY_PRODUCTION_CHEMOTROPH = 45;
-const MAX_ENERGY_PRODUCTION_PHOTOTROPH = 60;
+const MAX_ENERGY_PRODUCTION_CHEMOTROPH = 55;
+const MAX_ENERGY_PRODUCTION_PHOTOTROPH = 70;
 const MIN_ENERGY_PRODUCTION = 20;
 
 const MAX_ENERGY_CELL_MITOSIS = 10;
@@ -18,11 +18,19 @@ const MIN_BASE_METABOLIC_RATE = 10;
 
 const MAX_RAND_FACTOR = 0.9;
 const MIN_RAND_FACTOR = 0.1;
+
+function incrementColor(color, step) {
+    return (parseInt(color, 16) + step).toString(16);
+}
+
+function parseColor(color) {
+    return parseInt(color, 16);
+}
 /**
  * Bacteria class is responsible for defining the general bacteria class
  * 
  */
-// Color for the cells: #FFAA00
+// Color for the cells: #999900
 // Color for bacteria: #004400 for phototrophic
 //                     #883300 for chemotrophic 
 class Bacteria {
@@ -47,7 +55,7 @@ class Bacteria {
         this.isChild = false;
         // --Specify shape and idle movement--
         this.rounded = Math.floor(Math.random() * 10);
-        this.move = Math.random() * 0.1;
+        this.move = Math.random() * 0.2;
         // --Specify energy use and resource requirement, based on cell-type
         this.carbonType = Math.floor(Math.random() * 3);
         this.energyType = Math.floor(Math.random() * 2);
@@ -76,12 +84,13 @@ class Bacteria {
         }
         this.mitosisEnergy = this.randFactor * MAX_ENERGY_CELL_MITOSIS;
         // -----------------------------------------------------------------
-        this.color = 0x000000;
+        this.color;
         if (this.energyType == 0) {
-            this.color = 0x004400;
+            this.color = "004400";
         } else {
-            this.color = 0x883300;
+            this.color = "883300";
         }
+        //this.setInteractive();
     }
 
     /**
@@ -138,14 +147,14 @@ class Bacteria {
                         bacterium.nextCell = cellToFill;
                         bacterium.energyType = this.energyType;
                         bacterium.randFactor = this.randFactor;
-                        bacterium.color = this.color;
-                        if (Math.random() <= 0.005) {
+                        bacterium.color = parseColor(this.color);
+                        if (Math.random() <= 0.55) {
                             if (Math.random() >= 0.5) {
                                 bacterium.randFactor += Math.random() * 0.05;
-                                // bacterium.color += 0x000001;
+                                bacterium.color = incrementColor(bacterium.color, 2);
                             } else {
                                 bacterium.randFactor -= Math.random() * 0.05;
-                                // bacterium.color -= 0x000001;
+                                bacterium.color = incrementColor(bacterium.color, 1);
                             }
                         }
                         this.reserveEnergy += (this.calculateEnergyProduction() - this.calculateEnergyConsumption(state)) / 2;
@@ -234,12 +243,17 @@ class Bacteria {
         }
     }
 
+    /**
+     * Checks whether or not the cell has the requisite amount of materials for
+     *  cell movement.
+     */
     canMove() {
         return this.reserveEnergy >= this.movementEnergy;
     }
 
     /**
-     * Checks whether or not the cell can perform mitosis
+     * Checks whether or not the cell has the requisite amount of resources for
+     *  cell mitosis
      */
     canSplit() {
         return this.reserveEnergy >= this.mitosisEnergy;
@@ -273,7 +287,7 @@ class Bacteria {
         }
 
         this.graphic.clear();
-        this.graphic.beginFill(this.color);
+        this.graphic.beginFill(parseColor(this.color));
         if (this.rounded >= (Math.floor(this.size / 3 + 1) / 2)) {
             this.graphic.drawRoundedRect(this.x * cell_size + (cell_size - this.size) / 2,
                 this.y * cell_size + (cell_size - this.size) / 2, this.size, this.size, 
@@ -286,4 +300,12 @@ class Bacteria {
         this.rounded = (this.rounded + this.move) % Math.floor(this.size / 3 + 1);
         this.graphic.endFill();
     }
+
+    /**
+     * Responsible for setting the interactive clicking option for a bacterium via PIXI Graphics
+     */
+    // setInteractive() {
+    //     this.graphic.hitArea = new PIXI.Rectangle(this.x * cell_size - 2, this.y * cell_size - 2,
+    //                                     );
+    // }
 }
