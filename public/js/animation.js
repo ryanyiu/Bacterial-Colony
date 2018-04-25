@@ -101,7 +101,7 @@ var Environment = {
 
     // Create 3 initial bacteria, randomly placed and associated with different cells
     initBacteria : function() {
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 6; i++) {
             var bacterium = null;
             while(1) {
                 let x = Math.floor(Math.random() * 30);

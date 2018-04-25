@@ -6,15 +6,20 @@ const MAX_ENERGY_PRODUCTION_CHEMOTROPH = 55;
 const MAX_ENERGY_PRODUCTION_PHOTOTROPH = 70;
 const MIN_ENERGY_PRODUCTION = 20;
 
-const MAX_ENERGY_CELL_MITOSIS = 10;
+const MAX_ENERGY_CELL_MITOSIS = 30;
+const MIN_ENERGY_CELL_MITOSIS = 20;
 
 const MAX_ENERGY_CELL_MOVEMENT_CHEMOTROPH = 25;
 const MAX_ENERGY_CELL_MOVEMENT_PHOTOTROPH = 45;
 const MIN_ENERGY_CELL_MOVEMENT = 10;
 
-const MAX_BASE_METABOLIC_RATE_CHEMOTROPH = 30;
-const MAX_BASE_METABOLIC_RATE_PHOTOTROPH = 30;
+const MAX_BASE_METABOLIC_RATE_CHEMOTROPH = 40;
+const MAX_BASE_METABOLIC_RATE_PHOTOTROPH = 20;
 const MIN_BASE_METABOLIC_RATE = 10; 
+
+const MAX_RESOURCES_NEEDED_CHEMOTROPH = 45;
+const MAX_RESOURCES_NEEDED_PHOTOTROPH = 25;
+const MIN_RESOURCES_NEEDED = 20;
 
 const MAX_RAND_FACTOR = 0.9;
 const MIN_RAND_FACTOR = 0.1;
@@ -55,7 +60,7 @@ class Bacteria {
         this.isChild = false;
         // --Specify shape and idle movement--
         this.rounded = Math.floor(Math.random() * 10);
-        this.move = Math.random() * 0.2;
+        this.move = 0;
         // --Specify energy use and resource requirement, based on cell-type
         this.carbonType = Math.floor(Math.random() * 3);
         this.energyType = Math.floor(Math.random() * 2);
@@ -74,6 +79,7 @@ class Bacteria {
                                         + MIN_BASE_METABOLIC_RATE;
             this.movementEnergy = (MAX_ENERGY_CELL_MOVEMENT_PHOTOTROPH - MIN_ENERGY_CELL_MOVEMENT) * this.randFactor
                                         + MIN_ENERGY_CELL_MOVEMENT;
+            this.move = Math.random() * 0.1;
         } else {                    // Chemotroph
             this.energyProduction = (MAX_ENERGY_PRODUCTION_CHEMOTROPH - MIN_ENERGY_PRODUCTION) * this.randFactor
                                         + MIN_ENERGY_PRODUCTION;
@@ -81,8 +87,10 @@ class Bacteria {
                                         + MIN_BASE_METABOLIC_RATE;
             this.movementEnergy = (MAX_ENERGY_CELL_MOVEMENT_CHEMOTROPH - MIN_ENERGY_CELL_MOVEMENT) * this.randFactor
                                         + MIN_ENERGY_CELL_MOVEMENT;
+            this.move = Math.random() * 0.2;
         }
-        this.mitosisEnergy = this.randFactor * MAX_ENERGY_CELL_MITOSIS;
+        this.mitosisEnergy = this.randFactor * (MAX_ENERGY_CELL_MITOSIS - MIN_ENERGY_CELL_MITOSIS)
+                                    + MIN_ENERGY_CELL_MITOSIS;
         // -----------------------------------------------------------------
         this.color;
         if (this.energyType == 0) {
@@ -102,7 +110,15 @@ class Bacteria {
      */
     takeAction() {
         if (this.isDead) return;
-        let state = Math.floor(Math.random() * 3);
+        let state = 0;
+        if (!this.hasEmptyCellNeighbor() && this.cell.resources >= this.resourcesNeeded[0]) {
+            state = Math.floor(Math.random() * 3);
+        } else if (this.cell.resources < this.resourcesNeeded[0]) {
+            state = Math.floor(Math.random() * 2 + Math.random());
+        } else {
+            state = Math.floor(Math.random() * 2 + Math.random() * 2);
+            if (state > 2) state = 2;
+        }
         switch (state) {
             case 0:
                 this.reserveEnergy += this.calculateEnergyProduction() - this.calculateEnergyConsumption(state);
@@ -147,8 +163,8 @@ class Bacteria {
                         bacterium.nextCell = cellToFill;
                         bacterium.energyType = this.energyType;
                         bacterium.randFactor = this.randFactor;
-                        bacterium.color = parseColor(this.color);
-                        if (Math.random() <= 0.55) {
+                        bacterium.color = this.color;
+                        if (this.randFactor * Math.random() >= 0.95) {
                             if (Math.random() >= 0.5) {
                                 bacterium.randFactor += Math.random() * 0.05;
                                 bacterium.color = incrementColor(bacterium.color, 2);
@@ -185,14 +201,19 @@ class Bacteria {
      *               1 --> chemotrophic
      */
     setResourcesNeeded() {
+        let resources = 0;
         switch(this.energyType) {
             case 0: // phototrophic
-                this.resourcesNeeded.push(this.randFactor * 25);
+                resources = this.randFactor * (MAX_RESOURCES_NEEDED_CHEMOTROPH - MIN_RESOURCES_NEEDED)
+                                + MIN_RESOURCES_NEEDED;
+                this.resourcesNeeded.push(resources);
                 this.resourcesNeeded.push(0);
                 this.lightEfficiency = this.randFactor * 0.5;
                 return;
             case 1: // chemotrophic
-                this.resourcesNeeded.push(this.randFactor * 35);
+                resources = this.randFactor * (MAX_RESOURCES_NEEDED_PHOTOTROPH - MIN_RESOURCES_NEEDED)
+                                + MIN_RESOURCES_NEEDED;
+                this.resourcesNeeded.push(resources);
                 this.resourcesNeeded.push(0);
                 return;
         }
@@ -208,7 +229,7 @@ class Bacteria {
                 let energyFactor = (this.lightEfficiency * this.randFactor) + this.randFactor;
                 return this.energyProduction * (this.resourcesNeeded[1] / this.resourcesNeeded[0]) * energyFactor; 
             case 1: // chemotrophic
-                return this.energyProduction * (this.resourcesNeeded[1] / this.resourcesNeeded[0])
+                return this.energyProduction * (this.resourcesNeeded[1] / this.resourcesNeeded[0]);
         }
     }
 
@@ -241,6 +262,17 @@ class Bacteria {
             this.resourcesNeeded[1] = this.resourcesNeeded[0];
             this.cell.resources -= this.resourcesNeeded[0];
         }
+    }
+
+    /**
+     * Determines whether or not the cell has an empty cell to move/split into
+     */
+    hasEmptyCellNeighbor() {
+        for (let i = 0; i < this.cell.neighbors.length; i++) {
+            if (this.cell.neighbors[i] != null &&
+                !this.cell.neighbors[i].isOccupied) return true;
+        }
+        return false;
     }
 
     /**
